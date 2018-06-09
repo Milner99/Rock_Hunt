@@ -1,5 +1,9 @@
 local composer = require "composer"
 require "json"
+
+display.setDefault("anchorX", 0.0)
+display.setDefault("anchorY", 0.0)
+
 -- Your code here
 
 -- GLOBAL - Gather insets (function returns these in the order of top, left, bottom, right)
@@ -18,24 +22,27 @@ local _red = {233/255, 105/255, 162/255}
 --
 
 -- header background bar
-local global_header_background_bar = display.newRect(display.contentCenterX, 0, display.contentWidth, 120+topInset);
+local global_header_background_bar = display.newRect(0, 0, display.contentWidth, 40+topInset);
+
 global_header_background_bar:setFillColor(63/255, 179/255, 79/255);
 
 -- header wording to be left in place all the time - scenes will display below this area.
 local global_header = display.newText({
 	text="Greylees Rock Hunt",
-	x=display.contentCenterX,
-	y=topInset+20,
+	x=0,
+	y=topInset,
 	fontSize=28,
 	font=native.systemFontBold 
 	});
+global_header.anchorX=0.5
+global_header.x=display.contentCenterX
 global_header:setFillColor(1,1,1);
 
 local global_new_photo_button = display.newText({
 	text="+",
 	fontSize=30,
-	y=topInset+20,
-	x = display.safeActualContentWidth - 20
+	y=topInset,
+	x = display.safeActualContentWidth - 40
 	})
 global_new_photo_button:setFillColor(1,1,1)
 
@@ -43,7 +50,7 @@ global_new_photo_button:setFillColor(1,1,1)
 local global_new_photo_button = display.newText({
 	text="?",
 	fontSize=30,
-	y=topInset+20,
+	y=topInset,
 	x = 20
 	})
 global_new_photo_button:setFillColor(1,1,1)

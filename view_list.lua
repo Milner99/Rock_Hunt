@@ -2,6 +2,7 @@ local composer = require( "composer" )
 local widget = require("widget")
 local json = require("json")
 
+local pullToRelease = {}
 local reload_notice = {} 
 local scene = composer.newScene()
 local feed_data = {}
@@ -35,7 +36,7 @@ function scene:show( event )
     local phase = event.phase
  
     if ( phase == "will" ) then
-        local background = display.newRect(sceneGroup, display.contentCenterX, display.contentCenterY, display.contentWidth, display.contentHeight)
+        local background = display.newRect(sceneGroup, 0, 0, display.contentWidth, display.contentHeight)
         background:setFillColor(1,1,1)
         -- Code here runs when the scene is still off screen (but is about to come on screen)
  
@@ -49,7 +50,21 @@ function scene:show( event )
             x=display.contentCenterX,
             y=display.contentHeight - 100
             })
+        loadMessage.anchorX=0.5
         loadMessage:setFillColor(0,0,0)
+
+
+
+        -- load in and display a loading message
+        pullToRelease = display.newText({
+            parent=sceneGroup,
+            text="Keep pulling...",
+            fontSize=20,
+            x=display.contentCenterX,
+            y=topInset+60
+            })
+        pullToRelease.anchorX=0.5
+        pullToRelease:setFillColor(0,0,0)
 
         -- show the device activity monitor 
         --native.setActivityIndicator(true)
@@ -80,26 +95,27 @@ function scene:show( event )
 
                     local img = json.decode(e2.response);
 
+                    if img.id == nil then
+                        return false;
+                    end
+                        
                     -- check for loacl cache
                     if fileExists("image"..img.id..".png", system.TemporaryDirectory) then
-                        if img.id == nil then
-                            return false;
-                        end
                         local image_from_cache = display.newImage(rowGroup, "image"..img.id..".png", system.TemporaryDirectory)
                         image_from_cache.width=90
                         image_from_cache.height=90
-                        image_from_cache.x=-45
-                        image_from_cache.y=44
+                        image_from_cache.x=0
+                        image_from_cache.y=0
                         image_from_cache.alpha=0
-                        transition.to(image_from_cache,{time=200, alpha=1, x=45, width=90, height=90, transition=easing.outQuart});
+                        transition.to(image_from_cache,{time=200, alpha=1, transition=easing.outQuart});
                     else
                         local function remoteImageLoadingListener(e3)
                             e3.target.width=90
                             e3.target.height=90
-                            e3.target.x=-45
-                            e3.target.y=44
+                            e3.target.x=0
+                            e3.target.y=0
                             e3.target.alpha=0
-                            transition.to(e3.target,{time=200, alpha=1, x=45, width=90, height=90, transition=easing.outQuart});
+                            transition.to(e3.target,{time=200, alpha=1, transition=easing.outQuart});
                             rowGroup:insert(e3.target)
                         end
                         if img ~= nil then
@@ -112,22 +128,29 @@ function scene:show( event )
         end
 
         local function onRowTouch(event)
-            local options =
-            {
-                isModal = true,
-                effect = "fromBottom",
-                time = 400,
-                params = {
-                    link = feed_data[event.row.index]._links.self[1].href,
-                    sampleVar2 = "another sample variable"
+            if (event.phase == "release") then
+                local options =
+                {
+                    isModal = true,
+                    effect = "fromBottom",
+                    time = 400,
+                    params = {
+                        link = feed_data[event.row.index]._links.self[1].href,
+                        sampleVar2 = "another sample variable"
+                    }
                 }
-            }
-            composer.showOverlay("modal_details", options)
+               --composer.showOverlay("modal_details", options)
+            end
         end
 
         -- scroll listener 
         local function onScrollEvent(event) 
-            if (event.direction=="down" and event.limitReached==true) then
+            if (rocks_table_view:getContentPosition() > 100) then
+                pullToRelease.text = "Release to reload!"
+            else
+                pullToRelease.text = "Keep pulling..."
+            end
+            if (event.direction=="down" and event.limitReached==true and rocks_table_view:getContentPosition() > 100) then
                 native.setActivityIndicator(true)
                 loadMessage.alpha=1
                 rocks_table_view:deleteAllRows()
@@ -135,25 +158,16 @@ function scene:show( event )
             end
         end
 
-        reload_notice = display.newText({
-            text="Pull down and release to reload",
-            x=display.contentCenterX,
-            y=topInset + 80,
-            parent=sceneGroup
-            })
-        reload_notice.alpha=0
-        reload_notice:setFillColor(_blue)
-
         -- setup a table view - with event listeners for touch to show the details screen
         rocks_table_view = widget.newTableView(
             {
                 left = 0,
-                top = topInset+50,
+                top = topInset+40,
                 height = display.safeActualContentHeight - 30,
                 width = display.safeActualContentWidth,
                 onRowRender = onRowRender,
                 onRowTouch = onRowTouch,
-                --listener = onScrollEvent, - disabled pull down to refresh
+                listener = onScrollEvent, -- disabled pull down to refresh
                 hideBackground=true,
                 bottomPadding=50,
                 maxVelocity=1
